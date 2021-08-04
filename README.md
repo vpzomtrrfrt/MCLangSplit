@@ -1,5 +1,3 @@
-# MCLangSplit
-Ant's LangSplit Repo
+# MCLangSplit Fabric
 
-This is the official repository for the MCLangSplit mod:
-https://www.curseforge.com/minecraft/mc-mods/mclangsplit
+This is a Fabric port of Ant's [MCLangSplit](https://github.com/AntMCDev/MCLangSplit).
