@@ -47,7 +47,7 @@ public abstract class MixinWidget extends DrawableHelper implements Drawable, El
             this.hovered = p_230431_2_ >= this.x && p_230431_3_ >= this.y && p_230431_2_ < this.x + this.width && p_230431_3_ < this.y + this.height;
             int k = this.getYImage(this.hovered);
             mc.getTextureManager().bindTexture(AbstractButtonWidget.WIDGETS_LOCATION);
-            drawTexture(p_230431_1_, this.x, this.y, 0, 46 + k * 20, this.width, this.height);
+            drawTexture(p_230431_1_, this.x, this.y, 0, 46 + k * 20, this.width / 2, this.height);
             drawTexture(p_230431_1_, this.x + this.width / 2, this.y, 200 - this.width / 2, 46 + k * 20, this.width / 2, this.height);
             this.renderBg(p_230431_1_, mc, p_230431_2_, p_230431_3_);
 
