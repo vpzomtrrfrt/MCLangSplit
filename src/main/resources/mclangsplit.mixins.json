@@ -1,0 +1,9 @@
+{
+	"required": true,
+	"package": "com.ant.mclangsplit.mixin",
+	"compatibilityLevel": "JAVA_11",
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"mixins": ["ControlsListWidgetAccessorMixin", "MixinClientLanguageMap", "MixinKeyBindingListKeyEntry", "MixinWidget", "TranslationStorageAccessorMixin"]
+}

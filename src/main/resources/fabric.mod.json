@@ -1,0 +1,23 @@
+{
+	"schemaVersion": 1,
+	"id": "mclangsplit",
+	"version": "${version}",
+
+	"environment": "client",
+	"entrypoints": {
+		"client": ["com.ant.mclangsplit.MCLangSplit"]
+	},
+
+	"mixins": [{"config": "mclangsplit.mixins.json", "environment": "client"}],
+
+	"depends": {
+		"fabric": "*",
+		"minecraft": "1.16.x"
+	},
+
+	"name": "MCLangSplit",
+	"description": "This mod adds a second language to all tooltips (where available)",
+	"authors": ["Ant", "vpzom"],
+	"license": "MIT",
+	"icon": "mclangsplit.png"
+}

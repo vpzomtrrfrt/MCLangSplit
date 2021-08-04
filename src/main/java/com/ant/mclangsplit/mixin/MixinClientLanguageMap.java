@@ -1,19 +1,17 @@
 package com.ant.mclangsplit.mixin;
 
 import com.ant.mclangsplit.MCLangSplit;
-import com.ant.mclangsplit.config.ConfigHandler;
+import com.ant.mclangsplit.config.ModConfig;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.sun.media.jfxmedia.logging.Logger;
-import net.minecraft.client.resources.ClientLanguageMap;
-import net.minecraft.client.resources.Language;
-import net.minecraft.client.resources.data.LanguageMetadataSection;
-import net.minecraft.resources.IResource;
-import net.minecraft.resources.IResourceManager;
-import net.minecraft.resources.IResourcePack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.LanguageMap;
-import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
+import net.minecraft.client.resource.language.LanguageDefinition;
+import net.minecraft.client.resource.language.TranslationStorage;
+import net.minecraft.client.resource.metadata.LanguageResourceMetadata;
+import net.minecraft.resource.Resource;
+import net.minecraft.resource.ResourceManager;
+import net.minecraft.resource.ResourcePack;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.Language;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -22,13 +20,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Stream;
 
-@Mixin(ClientLanguageMap.class)
+@Mixin(TranslationStorage.class)
 public abstract class MixinClientLanguageMap {
     private static final List<String> IGNORE_DUAL_TRANSLATION_KEYS = new ArrayList<>();
     static {
@@ -38,21 +33,21 @@ public abstract class MixinClientLanguageMap {
         IGNORE_DUAL_TRANSLATION_KEYS.add("options.off.composed");
     }
 
-    @Inject(at = @At("RETURN"), method="loadFrom", cancellable = true)
-    private static void loadFrom(IResourceManager p_239497_0_, List<Language> p_239497_1_, CallbackInfoReturnable cir) {
+    @Inject(at = @At("RETURN"), method="load", cancellable = true)
+    private static void load(ResourceManager p_239497_0_, List<LanguageDefinition> p_239497_1_, CallbackInfoReturnable<TranslationStorage> cir) {
         Map<String, String> map = Maps.newHashMap();
-        Map<String, String> map1 = ((ClientLanguageMap)cir.getReturnValue()).getLanguageData();
+        Map<String, String> map1 = ((TranslationStorageAccessorMixin) cir.getReturnValue()).getTranslations();
         Map<String, String> map2 = Maps.newHashMap();
         boolean flag = false;
 
-        for(Language language : p_239497_1_) {
-            flag |= language.isBidirectional();
+        for(LanguageDefinition language : p_239497_1_) {
+            flag |= language.isRightToLeft();
             String s = String.format("lang/%s.json", language.getCode());
 
-            for(String s1 : p_239497_0_.getNamespaces()) {
+            for(String s1 : p_239497_0_.getAllNamespaces()) {
                 try {
-                    ResourceLocation resourcelocation = new ResourceLocation(s1, s);
-                    appendFrom(p_239497_0_.getResources(resourcelocation), map1);
+                    Identifier resourcelocation = new Identifier(s1, s);
+                    appendFrom(p_239497_0_.getAllResources(resourcelocation), map1);
                 } catch (FileNotFoundException filenotfoundexception) {
                 } catch (Exception exception) {
                     MCLangSplit.LOGGER.warn("Skipped language file: {}:{} ({})", s1, s, exception.toString());
@@ -61,22 +56,22 @@ public abstract class MixinClientLanguageMap {
         }
 
         boolean found = false;
-        for (Language l : p_239497_1_) {
-            if (l.getCode().equals(ConfigHandler.COMMON.languageSetting.get())) {
+        for (LanguageDefinition l : p_239497_1_) {
+            if (l.getCode().equals(ModConfig.COMMON.languageSetting)) {
                 found = true;
             }
         }
         if (!found) {
-            Map<String, Language> langMap = extractLanguages(p_239497_0_.listPacks());
-            if (langMap.containsKey(ConfigHandler.COMMON.languageSetting.get())) {
-                Language language = langMap.get(ConfigHandler.COMMON.languageSetting.get());
-                flag |= language.isBidirectional();
+            Map<String, LanguageDefinition> langMap = extractLanguages(p_239497_0_.streamResourcePacks());
+            if (langMap.containsKey(ModConfig.COMMON.languageSetting)) {
+                LanguageDefinition language = langMap.get(ModConfig.COMMON.languageSetting);
+                flag |= language.isRightToLeft();
                 String s = String.format("lang/%s.json", language.getCode());
 
-                for(String s1 : p_239497_0_.getNamespaces()) {
+                for(String s1 : p_239497_0_.getAllNamespaces()) {
                     try {
-                        ResourceLocation resourcelocation = new ResourceLocation(s1, s);
-                        appendFrom(p_239497_0_.getResources(resourcelocation), map2);
+                        Identifier resourcelocation = new Identifier(s1, s);
+                        appendFrom(p_239497_0_.getAllResources(resourcelocation), map2);
                     } catch (FileNotFoundException filenotfoundexception) {
                     } catch (Exception exception) {
                         MCLangSplit.LOGGER.warn("Skipped language file: {}:{} ({})", s1, s, exception.toString());
@@ -87,7 +82,7 @@ public abstract class MixinClientLanguageMap {
 
         for (String s : map1.keySet()) {
             String str = map1.get(s);
-            if (!ConfigHandler.COMMON.ignoreKeys.get().contains(s) && !IGNORE_DUAL_TRANSLATION_KEYS.contains(s) && map2.containsKey(s) && !specialEquals(map1.get(s), map2.get(s))) {
+            if (!ModConfig.COMMON.ignoreKeys.contains(s) && !IGNORE_DUAL_TRANSLATION_KEYS.contains(s) && map2.containsKey(s) && !specialEquals(map1.get(s), map2.get(s))) {
                 String s1 = map2.get(s);
                 if (s1.contains("%s") || s1.contains("$s")) {
                     int i = 1;
@@ -117,22 +112,14 @@ public abstract class MixinClientLanguageMap {
             map.put(s, str);
         }
 
-        Constructor<?> constructor = ObfuscationReflectionHelper.findConstructor(ClientLanguageMap.class, Map.class, Boolean.TYPE);
-        if (Modifier.isPrivate(constructor.getModifiers())) {
-            constructor.setAccessible(true);
-        }
-        try {
-            ClientLanguageMap clm = (ClientLanguageMap)constructor.newInstance(ImmutableMap.copyOf(map), flag);
-            cir.setReturnValue(clm);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException ex) {
-            MCLangSplit.LOGGER.error("Could not access constructor in ClientLanguageMap injection", ex);
-        }
+        TranslationStorage clm = TranslationStorageAccessorMixin.createTranslationStorage(ImmutableMap.copyOf(map), flag);
+        cir.setReturnValue(clm);
     }
 
-    private static void appendFrom(List<IResource> resources, Map<String, String> map) {
-        for(IResource iresource : resources) {
+    private static void appendFrom(List<Resource> resources, Map<String, String> map) {
+        for(Resource iresource : resources) {
             try (InputStream inputstream = iresource.getInputStream()) {
-                LanguageMap.loadFromJson(inputstream, map::put);
+                Language.load(inputstream, map::put);
             } catch (IOException ioexception) {
                 MCLangSplit.LOGGER.warn("Failed to load translations from {}", iresource, ioexception);
             }
@@ -140,13 +127,13 @@ public abstract class MixinClientLanguageMap {
 
     }
 
-    private static Map<String, Language> extractLanguages(Stream<IResourcePack> resourcePackStream) {
-        Map<String, Language> map = Maps.newHashMap();
+    private static Map<String, LanguageDefinition> extractLanguages(Stream<ResourcePack> resourcePackStream) {
+        Map<String, LanguageDefinition> map = Maps.newHashMap();
         resourcePackStream.forEach((e) -> {
             try {
-                LanguageMetadataSection languagemetadatasection = e.getMetadataSection(LanguageMetadataSection.SERIALIZER);
+                LanguageResourceMetadata languagemetadatasection = e.parseMetadata(LanguageResourceMetadata.READER);
                 if (languagemetadatasection != null) {
-                    for(Language language : languagemetadatasection.getLanguages()) {
+                    for(LanguageDefinition language : languagemetadatasection.getLanguageDefinitions()) {
                         map.putIfAbsent(language.getCode(), language);
                     }
                 }
