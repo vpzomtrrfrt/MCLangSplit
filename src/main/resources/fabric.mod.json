@@ -12,7 +12,8 @@
 
 	"depends": {
 		"fabric": "*",
-		"minecraft": "1.17.x"
+		"minecraft": "1.17.x",
+		"cloth-config2": "*"
 	},
 
 	"name": "MCLangSplit",
