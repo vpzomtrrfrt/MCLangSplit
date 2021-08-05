@@ -1,10 +1,13 @@
 package com.ant.mclangsplit.mixin;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.Drawable;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.widget.AbstractButtonWidget;
+import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.client.gui.widget.PressableWidget;
+import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
@@ -13,8 +16,9 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
-@Mixin(AbstractButtonWidget.class)
+@Mixin(ClickableWidget.class)
 public abstract class MixinWidget extends DrawableHelper implements Drawable, Element {
     @Shadow
     public boolean active;
@@ -33,35 +37,26 @@ public abstract class MixinWidget extends DrawableHelper implements Drawable, El
     @Shadow
     protected float alpha;
     @Shadow
-    abstract void renderBg(MatrixStack p_230441_1_, MinecraftClient p_230441_2_, int p_230441_3_, int p_230441_4_);
+    abstract void renderBackground(MatrixStack p_230441_1_, MinecraftClient p_230441_2_, int p_230441_3_, int p_230441_4_);
     @Shadow
     abstract int getYImage(boolean p_230989_1_);
     @Shadow
     abstract Text getMessage();
 
-    @Inject(at = @At("HEAD"), method = "renderButton", cancellable = true)
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/widget/ClickableWidget;drawCenteredText(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/text/Text;III)V"), method = "renderButton", cancellable = true)
     public void renderButton(MatrixStack p_230431_1_, int p_230431_2_, int p_230431_3_, float p_230431_4_, CallbackInfo ci) {
-        if (this.visible)
-        {
-            MinecraftClient mc = MinecraftClient.getInstance();
-            this.hovered = p_230431_2_ >= this.x && p_230431_3_ >= this.y && p_230431_2_ < this.x + this.width && p_230431_3_ < this.y + this.height;
-            int k = this.getYImage(this.hovered);
-            mc.getTextureManager().bindTexture(AbstractButtonWidget.WIDGETS_LOCATION);
-            drawTexture(p_230431_1_, this.x, this.y, 0, 46 + k * 20, this.width / 2, this.height);
-            drawTexture(p_230431_1_, this.x + this.width / 2, this.y, 200 - this.width / 2, 46 + k * 20, this.width / 2, this.height);
-            this.renderBg(p_230431_1_, mc, p_230431_2_, p_230431_3_);
+        MinecraftClient mc = MinecraftClient.getInstance();
 
-            Text buttonText = this.getMessage();
-            int strWidth = mc.textRenderer.getWidth(buttonText);
+        Text buttonText = this.getMessage();
+        int strWidth = mc.textRenderer.getWidth(buttonText);
 
-            float scaleFactor = strWidth > width - 6 ? 1f / (strWidth / (width - 6f)) : 1f;
+        float scaleFactor = strWidth > width - 6 ? 1f / (strWidth / (width - 6f)) : 1f;
 
-            p_230431_1_.push();
-            p_230431_1_.scale(scaleFactor, 1f, 1f);
-            int j = this.active ? 16777215 : 10526880;
-            drawCenteredText(p_230431_1_, mc.textRenderer, buttonText, (int)(((float)this.x + (float)this.width / 2f) * (1f / scaleFactor)), this.y + (this.height - 8) / 2, j | MathHelper.ceil(this.alpha * 255.0F) << 24);
-            p_230431_1_.pop();
-        }
+        p_230431_1_.push();
+        p_230431_1_.scale(scaleFactor, 1f, 1f);
+        int j = this.active ? 16777215 : 10526880;
+        drawCenteredText(p_230431_1_, mc.textRenderer, buttonText, (int)(((float)this.x + (float)this.width / 2f) * (1f / scaleFactor)), this.y + (this.height - 8) / 2, j | MathHelper.ceil(this.alpha * 255.0F) << 24);
+        p_230431_1_.pop();
         ci.cancel();
     }
 }
